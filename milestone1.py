@@ -108,15 +108,15 @@ def search(user_input):
                 break
     return urls
 
-# my_index = inverted_index()
-# print "Finished"
-user_input = raw_input("Please input your search keyword: ")
-search_result = search(user_input)
-if search_result:
-    for url in search_result:
-        print url
-else:
-    print "No related content."
+# create main function for primary entrance
+if __name__ == "__main__":
+	user_input = raw_input("Please input your search keyword: ")
+	search_result = search(user_input)
+	if search_result:
+	    for url in search_result:
+	        print url
+	else:
+	    print "No related content."
 
 
 
