@@ -22,6 +22,20 @@ def is_stopwords(word, stopwordsList):
     else:
         return False
 
+def calculate_tfidf(index):
+	N = 37492
+    for term in index:
+        df = len(index[term])
+        for doc_id in index[term]:
+            tf = index[term][doc_id]["tf"]
+            if tf == 0 or df == 0:
+                index[term][doc_id]["tf-idf"] = 0
+            else:
+                index[term][doc_id]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
+    with open("index.json","w") as f:
+        json.dump(index, f)
+    return index
+
 
 def inverted_index():
 	# initialization for stemmer and stopword processor
@@ -75,7 +89,7 @@ def inverted_index():
                             index[term][doc_id]["tf"] += 1
     with open("index.json","w") as f:
         json.dump(index, f)
-    return index
+    return calculate_tfidf(index)
 
 #TODO：增加index内容，排序，relevance scoring function，减小index（现在是570M），减少搜索时间，词组搜索，GUI。。。
 
