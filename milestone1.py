@@ -1,12 +1,13 @@
+
 #!/usr/bin/env python
 # coding: utf-8
-
 from nltk.stem.snowball import SnowballStemmer
 from nltk.corpus import stopwords
 import json
 from lxml.html.clean import Cleaner
 import re
 import collections
+import numpy as np
 
 def get_json(file):
     with open(file) as f:
@@ -58,7 +59,6 @@ def inverted_index():
                 #remove css, scripts, js in the HTML file
                 cleaner = Cleaner(style = True, scripts = True, comments = True, javascript = True, page_structure = False, safe_attrs_only = False)
                 if raw_content:
-                    #TODO: 处理04/288报错document is empty，暂时用了try except。04/288里全是乱码。
                     try:
                         content= cleaner.clean_html(raw_content)
                     except:
@@ -83,10 +83,19 @@ def inverted_index():
                             if doc_id not in index[term]:
                                 index[term][doc_id] = {
                                     "tf": 0,
-                                    "tf-idf": 0,
-                                    "other_info": "to be improved in milestone 2"
+                                    "tf-idf": 0
                                 }
                             index[term][doc_id]["tf"] += 1
+    
+    N = 37492
+    for term in index:
+        df = len(index[term])
+        for doc_id in index[term]:
+            tf = index[term][doc_id]["tf"]
+            if tf == 0 or df == 0:
+                index[term][doc_id]["tf-idf"] = 0
+            else:
+                index[term][doc_id]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
     with open("index.json","w") as f:
         json.dump(index, f)
     return calculate_tfidf(index)
@@ -107,7 +116,7 @@ def search(user_input):
             if len(urls) >= 10:
                 break
     return urls
-
+  
 # create main function for primary entrance
 if __name__ == "__main__":
 	user_input = raw_input("Please input your search keyword: ")
@@ -117,7 +126,6 @@ if __name__ == "__main__":
 	        print url
 	else:
 	    print "No related content."
-
 
 
 
