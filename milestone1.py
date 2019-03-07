@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[108]:
-
-
+from nltk.stem.snowball import SnowballStemmer
+from nltk.corpus import stopwords
 import json
 from lxml.html.clean import Cleaner
 import re
@@ -13,7 +12,22 @@ def get_json(file):
     with open(file) as f:
         return json.load(f)
 
+def get_stemmed_content(content, stemmer):
+	for k in range(len(content)):
+        content[k] = stemmer.stem(content[k]).encode('utf-8')
+
+def is_stopwords(word, stopwordsList):
+    if word in stopwordsList:
+        return True
+    else:
+        return False
+
+
 def inverted_index():
+	# initialization for stemmer and stopword processor
+	stemmer = SnowballStemmer('english')
+	swlist = set(stopwords.words('english'))
+
     index = {}
     for i in range(75):
         print "Processing folder " + str(i)
@@ -40,10 +54,15 @@ def inverted_index():
                     content = reg.sub(' ', content)
                     if content:
                         #TODO：只做了移除符号，大小写转换，没加stemming，stopWord等处理
-                        content = re.sub(r"[^a-zA-Z0-9]", " ", content.lower())
+                        content = re.sub(r"[^a-zA-Z0-9]",
+                        				 " ", 
+                        				 content.lower())
+                        # get the stermmed content
+                        get_stemmed_content(content, stemmer) 
                         for term in content.split():
-                            #control the length of the term
-                            if len(term) < 3 or len(term) > 20:
+                            #control the length of the term 
+                            # and exclude all stopwords
+                            if len(term) < 3 or len(term) > 20 or is_stopwords(term, swlist):
                                 continue
                             if term not in index:
                                 index[term] = {}
@@ -84,11 +103,7 @@ if search_result:
         print url
 else:
     print "No related content."
-    
 
-
-
-# In[ ]:
 
 
 
