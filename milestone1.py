@@ -39,9 +39,9 @@ def calculate_tfidf(index):
 
 
 def inverted_index():
-	# initialization for stemmer and stopword processor
-	stemmer = SnowballStemmer('english')
-	swlist = set(stopwords.words('english'))
+    # initialization for stemmer and stopword processor for faster performance
+    stemmer = SnowballStemmer('english')
+    swlist = set(stopwords.words('english'))
 
     index = {}
     for i in range(75):
