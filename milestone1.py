@@ -1,3 +1,8 @@
+
+#!/usr/bin/env python
+# coding: utf-8
+from nltk.stem.snowball import SnowballStemmer
+from nltk.corpus import stopwords
 import json
 from lxml.html.clean import Cleaner
 import re
@@ -8,7 +13,36 @@ def get_json(file):
     with open(file) as f:
         return json.load(f)
 
+def get_stemmed_content(content, stemmer):
+	for k in range(len(content)):
+        content[k] = stemmer.stem(content[k]).encode('utf-8')
+
+def is_stopwords(word, stopwordsList):
+    if word in stopwordsList:
+        return True
+    else:
+        return False
+
+def calculate_tfidf(index):
+	N = 37492
+    for term in index:
+        df = len(index[term])
+        for doc_id in index[term]:
+            tf = index[term][doc_id]["tf"]
+            if tf == 0 or df == 0:
+                index[term][doc_id]["tf-idf"] = 0
+            else:
+                index[term][doc_id]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
+    with open("index.json","w") as f:
+        json.dump(index, f)
+    return index
+
+
 def inverted_index():
+	# initialization for stemmer and stopword processor
+	stemmer = SnowballStemmer('english')
+	swlist = set(stopwords.words('english'))
+
     index = {}
     for i in range(75):
         print "Processing folder " + str(i)
@@ -34,10 +68,15 @@ def inverted_index():
                     content = reg.sub(' ', content)
                     if content:
                         #TODO：只做了移除符号，大小写转换，没加stemming，stopWord等处理
-                        content = re.sub(r"[^a-zA-Z0-9]", " ", content.lower())
+                        content = re.sub(r"[^a-zA-Z0-9]",
+                        				 " ", 
+                        				 content.lower())
+                        # get the stermmed content
+                        get_stemmed_content(content, stemmer) 
                         for term in content.split():
-                            #control the length of the term
-                            if len(term) < 3 or len(term) > 20:
+                            #control the length of the term 
+                            # and exclude all stopwords
+                            if len(term) < 3 or len(term) > 20 or is_stopwords(term, swlist):
                                 continue
                             if term not in index:
                                 index[term] = {}
@@ -59,7 +98,7 @@ def inverted_index():
                 index[term][doc_id]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
     with open("index.json","w") as f:
         json.dump(index, f)
-    return index
+    return calculate_tfidf(index)
 
 #TODO：增加index内容，排序，relevance scoring function，减小index（现在是570M），减少搜索时间，词组搜索，GUI。。。
 
@@ -77,13 +116,17 @@ def search(user_input):
             if len(urls) >= 10:
                 break
     return urls
+  
+# create main function for primary entrance
+if __name__ == "__main__":
+	user_input = raw_input("Please input your search keyword: ")
+	search_result = search(user_input)
+	if search_result:
+	    for url in search_result:
+	        print url
+	else:
+	    print "No related content."
 
-# my_index = inverted_index()
-# print "Finished"
-user_input = raw_input("Please input your search keyword: ")
-search_result = search(user_input)
-if search_result:
-    for url in search_result:
-        print url
-else:
-    print "No related content."
+
+
+
