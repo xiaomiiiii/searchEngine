@@ -89,35 +89,48 @@ def inverted_index():
     return index
 
 
-def search(user_input):
+def search(user_input, index):
     #TODO: 对user input的处理
     stemmer = SnowballStemmer('english')
 	swlist = set(stopwords.words('english'))
-
-    user_input = re.sub(r"[^a-zA-Z0-9]", " ", user_input.lower())
-    get_stemmed_content(user_input, stemmer)
 
     urls=[]
     book_keeping = get_json("WEBPAGES_RAW/bookkeeping.json")
     index = get_json("index.json")
 
-    for term in user_input.split():
-        if len(term) < 3 or len(term) > 20 or is_stopwords(term, swlist):
-            continue
-        if term not in input_index:
-            input_index[term] = {
-                "tf": 0,
-                "df": 0
-            }
-        input_index[term]["tf"] += 1
-        if term in index:
-            input_index[term][df] = index[term].length
-        else:
-            input_index[term][df] = 0
-                     
-    
+    #cleaned user terms
+    user_input = re.sub(r"[^a-zA-Z0-9]", " ", user_input.lower())
+    get_stemmed_content(user_input, stemmer)
+    user_terms = filter(lambda x: not is_stopwords(x, swlist), user_input.split())
+
+    doc_id = "qry"
+    user_index = {}
+
+     # no need to consider other terms non-existing
+    for term in user_terms:
+        if term not in user_index:
+            user_index[term] = {}
+            
+        user_index[term][doc_id] = {
+                                        "tf": 0,
+                                        "tf-idf": 0
+                                    }
+        user_index[term][doc_id]["tf"] += 1
+       
+
+    #now get document-frequency from index
+    for term in user_terms:
+        user_index[term][doc_id]["df"] = index[term].length
+
+    #calculate tf-idf for all users
+    user_index = calculate_tfidf(user_index)
+
+    #get relevant documents
+    index[term] for term in user_terms
+
 
     
+
     if user_input in index:
         for doc in index[user_input]:
             urls.append(book_keeping[doc])
