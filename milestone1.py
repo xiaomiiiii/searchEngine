@@ -71,8 +71,9 @@ def inverted_index():
                         				 " ", 
                         				 content.lower())
                         # get the stermmed content
-                        get_stemmed_content(content, stemmer) 
-                        for term in content.split():
+                        contents = content.split()
+                        get_stemmed_terms(contents, stemmer)
+                        for term in contents:
                             #control the length of the term 
                             # and exclude all stopwords
                             if len(term) < 3 or len(term) > 20 or is_stopwords(term, swlist):
