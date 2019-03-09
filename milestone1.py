@@ -35,7 +35,6 @@ def calculate_tfidf(index):
                 index[term][doc_id]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
     return index
 
-
 def inverted_index():
 	# initialization for stemmer and stopword processor
 	stemmer = SnowballStemmer('english')
@@ -65,7 +64,6 @@ def inverted_index():
                     reg = re.compile('<[^>]*>')
                     content = reg.sub(' ', content)
                     if content:
-                        #TODO：只做了移除符号，大小写转换，没加stemming，stopWord等处理
                         content = re.sub(r"[^a-zA-Z0-9]",
                         				 " ", 
                         				 content.lower())
@@ -90,21 +88,36 @@ def inverted_index():
         json.dump(index, f)
     return index
 
-#TODO：增加index内容，排序，relevance scoring function，减小index（现在是570M），减少搜索时间，词组搜索，GUI。。。
-
 
 def search(user_input):
     #TODO: 对user input的处理
     stemmer = SnowballStemmer('english')
 	swlist = set(stopwords.words('english'))
-    
+
     user_input = re.sub(r"[^a-zA-Z0-9]", " ", user_input.lower())
-    get_stemmed_content(content, stemmer)
-                     
+    get_stemmed_content(user_input, stemmer)
+
     urls=[]
     book_keeping = get_json("WEBPAGES_RAW/bookkeeping.json")
     index = get_json("index.json")
-    #index = get_json("test.json")
+
+    for term in user_input.split():
+        if len(term) < 3 or len(term) > 20 or is_stopwords(term, swlist):
+            continue
+        if term not in input_index:
+            input_index[term] = {
+                "tf": 0,
+                "df": 0
+            }
+        input_index[term]["tf"] += 1
+        if term in index:
+            input_index[term][df] = index[term].length
+        else:
+            input_index[term][df] = 0
+                     
+    
+
+    
     if user_input in index:
         for doc in index[user_input]:
             urls.append(book_keeping[doc])
