@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # coding: utf-8
 from nltk.stem.snowball import SnowballStemmer
@@ -13,9 +12,13 @@ def get_json(file):
     with open(file) as f:
         return json.load(f)
 
-def get_stemmed_content(content, stemmer):
-	for k in range(len(content)):
-        content[k] = stemmer.stem(content[k]).encode('utf-8')
+# def get_stemmed_content(content, stemmer):
+#     for k in range(len(content)):
+#         content[k] = stemmer.stem(content[k]).encode('utf-8')
+
+def get_stemmed_terms(terms, stemmer):
+    for k in range(len(terms)):
+        terms[k] = stemmer.stem(terms[k]).encode('utf-8')
 
 def is_stopwords(word, stopwordsList):
     if word in stopwordsList:
@@ -24,7 +27,7 @@ def is_stopwords(word, stopwordsList):
         return False
 
 def calculate_tfidf(index):
-	N = 37492
+    N = 37492
     for term in index:
         df = len(index[term])
         for doc_id in index[term]:
@@ -84,24 +87,23 @@ def inverted_index():
                             index[term][doc_id]["tf"] += 1
     
     index = calculate_tfidf(index)
+
     with open("index.json","w") as f:
         json.dump(index, f)
     return index
 
 
-def search(user_input, index):
-    #TODO: 对user input的处理
+def search(user_input, index, bookkeeping):
     stemmer = SnowballStemmer('english')
-	swlist = set(stopwords.words('english'))
+    swlist = set(stopwords.words('english'))
 
     urls=[]
-    book_keeping = get_json("WEBPAGES_RAW/bookkeeping.json")
-    index = get_json("index.json")
-
     #cleaned user terms
     user_input = re.sub(r"[^a-zA-Z0-9]", " ", user_input.lower())
-    get_stemmed_content(user_input, stemmer)
-    user_terms = filter(lambda x: not is_stopwords(x, swlist), user_input.split())
+    
+    user_terms = user_input.split()
+    get_stemmed_terms(user_terms, stemmer)
+    user_terms = filter(lambda x: not is_stopwords(x, swlist), user_terms)
 
     doc_id = "qry"
     user_index = {}
@@ -110,7 +112,7 @@ def search(user_input, index):
     for term in user_terms:
         if term not in user_index:
             user_index[term] = {}
-            
+
         user_index[term][doc_id] = {
                                         "tf": 0,
                                         "tf-idf": 0
@@ -120,33 +122,49 @@ def search(user_input, index):
 
     #now get document-frequency from index
     for term in user_terms:
-        user_index[term][doc_id]["df"] = index[term].length
+        user_index[term][doc_id]["df"] = len(index[term])
 
     #calculate tf-idf for all users
     user_index = calculate_tfidf(user_index)
+    print user_index
 
-    #get relevant documents
-    index[term] for term in user_terms
+    #get tf-idf from the index
+    docScores = {}
+    for term in user_terms:
+        # only deal with index
+        if term in index:
+            #get all documents id for the term
+            docIDs = index[term].keys()
+            for docid in docIDs:
+                if docid in docScores:
+                    if docid in user_index[term].keys():
+                        docScores[docid] += index[term][docid]["tf-idf"] * user_index[term][docid]["tf-idf"]
+                    else:
+                        pass
+                else:
+                    if docid in user_index[term].keys():
+                        docScores[docid] = index[term][docid]["tf-idf"] * user_index[term][docid]["tf-idf"]
+                    else:
+                        docScores[docid] = 0
 
 
-    
-
-    if user_input in index:
-        for doc in index[user_input]:
-            urls.append(book_keeping[doc])
-            if len(urls) >= 10:
-                break
-    return urls
+    # collect 10 result
+    count = 0
+    result = []
+    for key, value in sorted(docScores.iteritems(), key=lambda (k,v): (v,k)):
+        count = count + 1
+        result.append({'rank': count, 'docID': key, 'score': value, 'url': book_keeping[key]})
+        if count > 10: 
+            break
+    return result
   
 # create main function for primary entrance
 if __name__ == "__main__":
-	user_input = raw_input("Please input your search keyword: ")
-	search_result = search(user_input)
-	if search_result:
-	    for url in search_result:
-	        print url
-	else:
-	    print "No related content."
+    index = get_json("index.json")
+    book_keeping = get_json("WEBPAGES_RAW/bookkeeping.json")
+    user_input = raw_input("Please input your search keyword: ")
+    search_result = search(user_input, index, book_keeping)
+    print search_result
 
 
 
