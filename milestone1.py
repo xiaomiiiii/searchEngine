@@ -79,6 +79,7 @@ def inverted_index():
                                 continue
                             if term not in index:
                                 index[term] = {}
+                                index[term]["token"] = term
                             if doc_id not in index[term]:
                                 index[term][doc_id] = {
                                     "tf": 0,
@@ -104,7 +105,7 @@ def search(user_input, index, bookkeeping):
     user_terms = user_input.split()
     get_stemmed_terms(user_terms, stemmer)
     user_terms = filter(lambda x: not is_stopwords(x, swlist), user_terms)
-
+    N = 37492.0
     doc_id = "qry"
     user_index = {}
 
@@ -123,10 +124,21 @@ def search(user_input, index, bookkeeping):
     #now get document-frequency from index
     for term in user_terms:
         user_index[term][doc_id]["df"] = len(index[term])
+        print "index[term] length", len(index[term])
 
     #calculate tf-idf for all users
-    user_index = calculate_tfidf(user_index)
-    print user_index
+    #user_index = calculate_tfidf(user_index)
+    #print "user_index",user_index
+    for term in user_index :
+        for docid in user_index[term]:
+            tf = user_index [term][docid]["tf"]
+            df = user_index [term][docid]["df"]
+            if tf == 0 or df == 0:
+                user_index[term][docid]["tf-idf"] = 0
+            else:
+                user_index[term][docid]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
+   
+   # return index
 
     #get tf-idf from the index
     docScores = {}
@@ -135,17 +147,21 @@ def search(user_input, index, bookkeeping):
         if term in index:
             #get all documents id for the term
             docIDs = index[term].keys()
+            #print "key:", docIDs
             for docid in docIDs:
+               # print "user_index[term]", user_index[term].keys()
                 if docid in docScores:
-                    if docid in user_index[term].keys():
-                        docScores[docid] += index[term][docid]["tf-idf"] * user_index[term][docid]["tf-idf"]
-                    else:
-                        pass
+                   #if docid in user_index[term].keys():
+                        docScores[docid] += index[term][docid]["tf-idf"] * user_index[term][doc_id]["tf-idf"]
+                        print "docScores[docid]:", docScores[docid]
+                    #else:
+                        #pass
                 else:
-                    if docid in user_index[term].keys():
-                        docScores[docid] = index[term][docid]["tf-idf"] * user_index[term][docid]["tf-idf"]
-                    else:
-                        docScores[docid] = 0
+                    #if docid in user_index[term].keys():
+                        docScores[docid] = index[term][docid]["tf-idf"] * user_index[term][doc_id]["tf-idf"]
+                        print "docScores[docid]:", docScores[docid]
+                   # else:
+                        #docScores[docid] = 0
 
 
     # collect 10 result
@@ -157,14 +173,19 @@ def search(user_input, index, bookkeeping):
         if count > 10: 
             break
     return result
+
+
   
 # create main function for primary entrance
-if __name__ == "__main__":
-    index = get_json("index.json")
-    book_keeping = get_json("WEBPAGES_RAW/bookkeeping.json")
-    user_input = raw_input("Please input your search keyword: ")
-    search_result = search(user_input, index, book_keeping)
-    print search_result
+
+index = get_json("/Users/irenewang/SearchEngine-master/codes/searchEngine/index.json")
+
+book_keeping = get_json("/Users/irenewang/WEBPAGES_RAW/bookkeeping.json")
+user_input = raw_input("Please input your search keyword: ")
+search_result = search(user_input, index, book_keeping)
+print search_result
+  
+  
 
 
 
