@@ -33,8 +33,6 @@ def calculate_tfidf(index):
                 index[term][doc_id]["tf-idf"] = 0
             else:
                 index[term][doc_id]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
-    with open("index.json","w") as f:
-        json.dump(index, f)
     return index
 
 
@@ -87,25 +85,22 @@ def inverted_index():
                                 }
                             index[term][doc_id]["tf"] += 1
     
-    N = 37492
-    for term in index:
-        df = len(index[term])
-        for doc_id in index[term]:
-            tf = index[term][doc_id]["tf"]
-            if tf == 0 or df == 0:
-                index[term][doc_id]["tf-idf"] = 0
-            else:
-                index[term][doc_id]["tf-idf"] = (1 + np.log10(tf)) * (np.log10(N / df))
+    index = calculate_tfidf(index)
     with open("index.json","w") as f:
         json.dump(index, f)
-    return calculate_tfidf(index)
+    return index
 
 #TODO：增加index内容，排序，relevance scoring function，减小index（现在是570M），减少搜索时间，词组搜索，GUI。。。
 
 
 def search(user_input):
     #TODO: 对user input的处理
-    user_input = user_input.lower()
+    stemmer = SnowballStemmer('english')
+	swlist = set(stopwords.words('english'))
+    
+    user_input = re.sub(r"[^a-zA-Z0-9]", " ", user_input.lower())
+    get_stemmed_content(content, stemmer)
+                     
     urls=[]
     book_keeping = get_json("WEBPAGES_RAW/bookkeeping.json")
     index = get_json("index.json")
